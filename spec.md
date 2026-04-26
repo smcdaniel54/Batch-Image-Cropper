@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-CLI tool: given flatbed-style scans (near-white background, darker photos), write **one rectified JPEG per detected photo**, a **QA overlay JPEG per successful source**, **`manifest.json`**, and **`quality_report.md`**. Optional move of each processed source into `input/processed/` (or equivalent next to a single file).
+CLI tool: given flatbed-style scans (near-white background, darker photos), write **one rectified JPEG per detected photo**, a **QA overlay JPEG per successful source**, **`manifest.json`**, and **`quality_report.md`**. Optionally moves each completed source scan into **`processed/`** under the input directory (directory mode) or next to a single `-input` file (see §6)—not under `-out-dir`.
 
 **In scope:** batch or single-file runs, top-level files only under an input directory (no subfolder recursion).
 
@@ -36,6 +36,26 @@ CLI tool: given flatbed-style scans (near-white background, darker photos), writ
 
 **Startup:** Prints absolute paths for resolved input (file or directory) and `-out-dir`.
 
+### 3.1 Example invocations (same as README)
+
+No arguments (process `./input` → `./output`):
+
+```powershell
+.\batch-image-cropper.exe
+```
+
+Single file (output defaults to `./output`):
+
+```powershell
+.\batch-image-cropper.exe -input ".\scan.jpg" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5
+```
+
+Entire folder (top-level files only, not subfolders):
+
+```powershell
+.\batch-image-cropper.exe -input-dir ".\scans" -out-dir ".\cropped" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5
+```
+
 ---
 
 ## 4. Output directory contract (`-out-dir`)
@@ -46,8 +66,8 @@ Everything the tool writes on success lives **only** under `-out-dir`. There are
 |------|----------------|------|
 | Cropped JPEGs | `<stem>_001.jpg`, `<stem>_002.jpg`, … | One per saved crop (`stem` = source basename without extension). |
 | QA JPEG | `<stem>_000_qa.jpg` | One per source that produced ≥1 saved crop: full scan + quads, corners, 1-based labels. **Primary visual QA.** |
-| Manifest | `manifest.json` | One file listing all saved crops for the run. |
-| Quality report | `quality_report.md` | Batch summary from the same data as the manifest. |
+| Manifest | `manifest.json` | One file per run listing **every** saved crop (one manifest entry per crop JPEG). |
+| Quality report | `quality_report.md` | Written **exactly once** per successful run; batch summary from the same data as the manifest. |
 
 **Sorting:** `_000_qa` lexically before `_001`, `_002`, … for the same stem.
 
@@ -59,7 +79,7 @@ Higher-level detection behavior (thresholding, components, warp, optional split 
 
 ## 5. `manifest.json`
 
-Top level: `version` (int, currently `1`), `entries` (array).
+Top level: `version` (int, currently `1`), `entries` (array). There are **no** JSON fields for debug output or paths outside `-out-dir`.
 
 Each **entry** corresponds to **one saved crop**:
 

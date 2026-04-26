@@ -1,6 +1,6 @@
 # batch-image-cropper
 
-Pure Go (no cgo) CLI for splitting flatbed or sheet-fed scans: **detect each photo on a near-white background**, run a **single-step perspective (homography) warp** to straighten, optionally fit an **aspect ratio**, and write one JPEG per photo plus a `manifest.json`.
+Pure Go (no cgo) CLI for splitting flatbed or sheet-fed scans: **detect each photo on a near-white background**, run a **single-step perspective (homography) warp** to straighten, optionally fit an **aspect ratio**, and write one JPEG per photo plus **`manifest.json`** and **`quality_report.md`** (see `spec.md` for the output contract).
 
 ## Requirements
 
@@ -18,7 +18,7 @@ This produces `batch-image-cropper.exe` in the current directory.
 
 ## Usage
 
-**Defaults:** if you omit both `-input` and `-input-dir`, input is the folder `./input`. If you omit `-out-dir`, output is `./output` (the directory is created if needed). The program prints the resolved **absolute** input and output paths on startup. You cannot use `-input` and `-input-dir` together.
+**Defaults:** if you omit both `-input` and `-input-dir`, that is the same as `-input-dir ./input`. If you omit `-out-dir`, deliverables go to `./output` (created if needed). All JPEG crops, QA overlays, `manifest.json`, and `quality_report.md` are written **only** under `-out-dir`. The program prints the resolved **absolute** input and output paths on startup. You cannot use `-input` and `-input-dir` together.
 
 ### No arguments (process `./input` → `./output`)
 
@@ -42,22 +42,24 @@ This produces `batch-image-cropper.exe` in the current directory.
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-input` | (none) | One scan file; not combinable with `-input-dir` |
-| `-input-dir` | (none) | Directory of images; if both `-input` and `-input-dir` are omitted, this defaults to `./input` |
-| `-out-dir` | `./output` | Where JPEGs, `manifest.json`, and `quality_report.md` are written; created if missing |
-| `-threshold` | `245` | Pixels with luminance **below** this are treated as foreground (photo); near-white platen is background |
-| `-min-area` | `20000` | Smallest component (in pixels) kept as a photo |
-| `-padding` | `0` | Grows the quad from its center before warping, in pixels (approximate) |
-| `-aspect` | `0` | When positive, the warped result is **center-cropped** so width/height equals this value |
+| `-input` | (none) | One image path. **Mutually exclusive** with `-input-dir`. |
+| `-input-dir` | (none) | Directory of images (files only, not subfolders). If both `-input` and `-input-dir` are omitted, defaults to `./input`. |
+| `-out-dir` | `./output` | **Only** directory the tool uses for deliverables—JPEGs, `manifest.json`, and `quality_report.md` (see `spec.md` §4); created if missing. |
+| `-threshold` | `245` | Pixels strictly darker than this value are **foreground**; others are background. |
+| `-min-area` | `20000` | Minimum 4-connected foreground area (px²) to keep a component. |
+| `-padding` | `0` | Expand fitted quad from center before warp (px, approximate). |
+| `-aspect` | `0` | If positive, center-crop warped result to this width÷height ratio. |
 
 Supported inputs: **`.jpg`**, **`.jpeg`**, **`.png`**.
 
 ## Outputs
 
+All of the following live **only** under `-out-dir` (no debug directory and no deliverables written elsewhere):
+
 - **QA overlay** (per scan that produced at least one crop): `<source-stem>_000_qa.jpg` — full scan with each crop’s quad, corners, and index labels. This is the **primary visual inspection** artifact for detection quality.
-- **Cropped images:** `<source-stem>_001.jpg`, `_002`, …
-- `manifest.json`: `qa_image` (same on every entry from a source), source path, output filename, four corner points used for detection, output size, `mode`, and `confidence`. Modes include `quad_hull`, `rotated_min_area_rect`, `axis_aligned`, `axis_aligned_invalid_quad` (quad failed validation), and `axis_aligned_homography_fail` (matrix solve/invert failed).
-- `quality_report.md`: batch-level summary derived from the manifest.
+- **Cropped images:** `<source-stem>_001.jpg`, `<source-stem>_002.jpg`, …
+- **`manifest.json`:** one entry per **saved** crop (`qa_image` is the same basename on every entry from a source), plus `source`, `output`, `corners`, `output_size`, `mode`, and `confidence`. Modes include `quad_hull`, `rotated_min_area_rect`, `axis_aligned`, `axis_aligned_invalid_quad` (quad failed validation), and `axis_aligned_homography_fail` (matrix solve/invert failed).
+- **`quality_report.md`:** written **once** per successful run, batch summary from the same data as the manifest.
 - **Processed scans:** after each source file yields at least one photo, the original scan is moved to `processed/` under the input directory (when using a folder or default `./input`), or to `processed/` next to a single input file. Collisions are resolved with `name_2.ext`, `name_3.ext`, etc. The manifest `source` path is updated to the new location. Nothing is moved if the run fails, or if a scan produced zero photos.
 
 ## Development helper (PowerShell)
