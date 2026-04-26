@@ -117,8 +117,15 @@ func run() error {
 				return nerr
 			}
 		}
+		savedN := 0
+		var qaMetas []cropper.Meta
 		for i := range imgs {
-			outName, err := outputPhotoName(path, i+1)
+			if cropLooksFullPageAgainstSource(imgs[i], source) {
+				warnLog("rejected full-page crop candidate")
+				continue
+			}
+			savedN++
+			outName, err := outputPhotoName(path, savedN)
 			if err != nil {
 				return err
 			}
@@ -131,6 +138,7 @@ func run() error {
 			}
 			bd := imgs[i].Bounds()
 			mode := metas[i].Mode
+			qaMetas = append(qaMetas, metas[i])
 			entries = append(entries, manifest.Entry{
 				Source:     path,
 				Output:     outName,
@@ -144,15 +152,15 @@ func run() error {
 				fallbackByMode[mode]++
 			}
 		}
-		if len(imgs) > 0 && source != nil {
+		if savedN > 0 && source != nil {
 			qaPath := filepath.Join(outAbs, qaName)
-			qa := cropper.QaScanOverlay(source, metas)
+			qa := cropper.QaScanOverlay(source, qaMetas)
 			if err := saveQAJPEG(qaPath, qa, 90); err != nil {
 				return err
 			}
 			qaImagesWritten++
 		}
-		if moveprocessed.MoveAfterExtraction(len(imgs)) {
+		if moveprocessed.MoveAfterExtraction(savedN) {
 			base := inputAbs
 			if singleInput {
 				base = filepath.Dir(path)
@@ -297,6 +305,20 @@ func metaCornersToSlice(m cropper.Meta) [][]float64 {
 	return out
 }
 
+// cropLooksFullPageAgainstSource reports when a crop is almost the entire scan (by pixel size),
+// so it must not be written as a numbered output file.
+func cropLooksFullPageAgainstSource(crop image.Image, source *image.RGBA) bool {
+	if source == nil || crop == nil {
+		return false
+	}
+	sw, sh := source.Bounds().Dx(), source.Bounds().Dy()
+	cw, ch := crop.Bounds().Dx(), crop.Bounds().Dy()
+	if sw < 1 || sh < 1 {
+		return false
+	}
+	return float64(cw) >= 0.9*float64(sw) && float64(ch) >= 0.9*float64(sh)
+}
+
 // outputPhotoName returns the basename for crop index n: <stem>_NNN.jpg (NNN 001-based) so a scan group sorts as
 // <stem>_000_qa.jpg, <stem>_001.jpg, <stem>_002.jpg, ... The original scan filename is never reused.
 func outputPhotoName(inputPath string, n int) (string, error) {
@@ -345,10 +367,6 @@ func isDerivedOutputPhotoName(base string) bool {
 }
 
 func saveJPEG(path string, img image.Image, quality int) error {
-	base := filepath.Base(path)
-	if !isDerivedOutputPhotoName(base) {
-		return fmt.Errorf("internal: refuse to write non-derived output path %q", path)
-	}
 	return encodeJPEGFile(path, img, quality)
 }
 
@@ -379,13 +397,30 @@ func isQAOutputName(base string) bool {
 }
 
 func saveQAJPEG(path string, img image.Image, quality int) error {
-	if !isQAOutputName(filepath.Base(path)) {
-		return fmt.Errorf("internal: refuse to write non-QA output path %q", path)
-	}
 	return encodeJPEGFile(path, img, quality)
 }
 
+// validateAllowlistedOutputJPEG enforces that only product JPEGs are written to the output tree:
+// <stem>_000_qa.jpg or <stem>_###.jpg with ### in 001..999. This blocks accidental writes of the
+// original scan basename (e.g. scan.jpg) or any other disallowed name.
+func validateAllowlistedOutputJPEG(base string) error {
+	if base == "" {
+		return fmt.Errorf("output image: empty filename")
+	}
+	if !strings.EqualFold(filepath.Ext(base), ".jpg") {
+		return fmt.Errorf("output image %q: extension must be .jpg", base)
+	}
+	if isQAOutputName(base) || isDerivedOutputPhotoName(base) {
+		return nil
+	}
+	return fmt.Errorf("disallowed output image %q: allowed patterns are <stem>_000_qa.jpg or <stem>_001.jpg through <stem>_999.jpg only", base)
+}
+
 func encodeJPEGFile(path string, img image.Image, quality int) error {
+	base := filepath.Base(path)
+	if err := validateAllowlistedOutputJPEG(base); err != nil {
+		return err
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err

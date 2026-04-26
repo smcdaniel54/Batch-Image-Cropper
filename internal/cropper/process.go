@@ -42,7 +42,14 @@ func ProcessScan(path string, o Options) (source *image.RGBA, out []*image.RGBA,
 	var allImg []*image.RGBA
 	var allM []Meta
 	for _, r := range regions {
+		if isFullPageCandidate(r, w, h) {
+			continue
+		}
 		sub, meta := extractRegion(src, w, h, labels, r, o.Padding, stride)
+		if quadCornersCoverFullSource(meta, b) {
+			continue
+		}
+		sub = postWarpTrimMargins(sub, o.Threshold)
 		if o.Aspect > 0 {
 			sub = warp.EnforceAspect(sub, o.Aspect)
 		}

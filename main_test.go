@@ -129,6 +129,81 @@ func TestManifestQaImageOnAllEntries(t *testing.T) {
 	}
 }
 
+// TestGoRunFullBleedNoCropSameSizeAsSource runs the CLI on a single full-field dark scan so the only
+// component would be a full-page candidate; output must not contain a numbered JPEG matching source dimensions.
+func TestGoRunFullBleedNoCropSameSizeAsSource(t *testing.T) {
+	if testing.Short() {
+		t.Skip("subprocess: go run")
+	}
+	modRoot := moduleDir(t)
+	work := t.TempDir()
+	inPath := filepath.Join(work, "mono.jpg")
+	outDir := filepath.Join(work, "out")
+	const W, H = 260, 200
+	writeFullBleedJPEG(t, inPath, W, H)
+	cmd := exec.Command("go", "run", ".", "-input", inPath, "-out-dir", outDir, "-min-area", "4000")
+	cmd.Dir = modRoot
+	logOut, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("go run: %v\n%s", err, logOut)
+	}
+	fin, err := os.Open(inPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fin.Close()
+	imgIn, _, err := image.Decode(fin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srcB := imgIn.Bounds()
+	matches, err := filepath.Glob(filepath.Join(outDir, "*.jpg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range matches {
+		base := filepath.Base(p)
+		if strings.Contains(base, "_000_qa") {
+			continue
+		}
+		f, err := os.Open(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		im, _, err := image.Decode(f)
+		_ = f.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := im.Bounds()
+		if b.Dx() == srcB.Dx() && b.Dy() == srcB.Dy() {
+			t.Fatalf("numbered output %s must not match full source size %dx%d", base, srcB.Dx(), srcB.Dy())
+		}
+	}
+}
+
+func writeFullBleedJPEG(t *testing.T, path string, w, h int) {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	d := color.RGBA{R: 14, G: 14, B: 16, A: 255}
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			img.SetRGBA(x, y, d)
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := jpeg.Encode(f, img, &jpeg.Options{Quality: 90}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func writeSyntheticScanJPEG(t *testing.T, path string) {
 	t.Helper()
 	// ~220x220 near-white with a dark card region so one component meets default min-area.

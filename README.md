@@ -61,6 +61,23 @@ Supported inputs: **`.jpg`**, **`.jpeg`**, **`.png`**.
 - **Processed scans:** after each source file yields at least one photo, the original scan is moved to `processed/` under the input directory (when using a folder or default `./input`), or to `processed/` next to a single input file. Collisions are resolved with `name_2.ext`, `name_3.ext`, etc. The manifest `source` path is updated to the new location. Nothing is moved if the run fails, or if a scan produced zero photos.
 - With `-debug`: overlay images under `out-dir/debug/`.
 
+## Development helper (PowerShell)
+
+For local runs only: move **files** (not subfolders) from `input/processed/` back into `input/`, with optional removal of `./output`. Name clashes in `input/` are resolved as `name_2.ext`, `name_3.ext`, etc. The script does **not** run the cropper.
+
+From the repo root (where `go.mod` lives):
+
+```powershell
+.\scripts\dev-reset-input.ps1 -RemoveOutput
+.\photo-cropper.exe
+```
+
+Use another input tree:
+
+```powershell
+.\scripts\dev-reset-input.ps1 -InputDir ".\my-input" -RemoveOutput
+```
+
 ## Algorithm notes
 
 Foreground is found by **luminance thresholding**, then **4-connected** components, sorted **top-to-bottom, then left-to-right**. For each region, border samples feed a **convex hull**; either a 4-vertex hull or a **minimum-area rectangle** (angular sweep) supplies four corners. Corners are ordered by **centroid + polar angle**, then normalized to TL–TR–BR–BL with winding matched to the destination rectangle. Quads are **validated** (minimum area, edge length, aspect ratio, self-intersection) before warping; failed candidates fall back to the minimum-area rectangle or an axis-aligned crop, with matching `manifest.json` modes and confidence.
