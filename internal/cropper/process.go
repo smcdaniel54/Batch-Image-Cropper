@@ -45,16 +45,33 @@ func ProcessScan(path string, o Options) (source *image.RGBA, out []*image.RGBA,
 		if isFullPageCandidate(r, w, h) {
 			continue
 		}
-		sub, meta := extractRegion(src, w, h, labels, r, o.Padding, stride)
-		if quadCornersCoverFullSource(meta, b) {
+		clips := trySplitRegionClips(w, h, mask, labels, r, o.MinArea)
+		if len(clips) == 0 {
+			sub, meta := extractRegionClip(src, w, h, labels, r, nil, o.Padding, stride)
+			if quadCornersCoverFullSource(meta, b) {
+				continue
+			}
+			sub = postWarpTrimMargins(sub, o.Threshold)
+			if o.Aspect > 0 {
+				sub = warp.EnforceAspect(sub, o.Aspect)
+			}
+			allImg = append(allImg, sub)
+			allM = append(allM, meta)
 			continue
 		}
-		sub = postWarpTrimMargins(sub, o.Threshold)
-		if o.Aspect > 0 {
-			sub = warp.EnforceAspect(sub, o.Aspect)
+		for i := range clips {
+			c := clips[i]
+			sub, meta := extractRegionClip(src, w, h, labels, r, &c, o.Padding, stride)
+			if quadCornersCoverFullSource(meta, b) {
+				continue
+			}
+			sub = postWarpTrimMargins(sub, o.Threshold)
+			if o.Aspect > 0 {
+				sub = warp.EnforceAspect(sub, o.Aspect)
+			}
+			allImg = append(allImg, sub)
+			allM = append(allM, meta)
 		}
-		allImg = append(allImg, sub)
-		allM = append(allM, meta)
 	}
 	if o.DebugDir != "" {
 		saveDebug(path, o.DebugDir, src, allM)

@@ -33,14 +33,38 @@ func extractRegion(
 	pad int,
 	stride int,
 ) (out *image.RGBA, meta Meta) {
+	return extractRegionClip(src, w, h, labels, region, nil, pad, stride)
+}
+
+// extractRegionClip is like extractRegion but optionally restricts contour sampling to clip (image.Rect in 0..w, 0..h, Max exclusive).
+// When clip is nil, behavior matches extractRegion.
+func extractRegionClip(
+	src *image.RGBA,
+	w, h int,
+	labels []int,
+	region seg.Region,
+	clip *image.Rectangle,
+	pad int,
+	stride int,
+) (out *image.RGBA, meta Meta) {
 	b := src.Bounds()
-	pts := borderPointsSubsampled(w, h, labels, region.ID, stride, b)
+	var axisR seg.Region
+	if clip == nil {
+		axisR = region
+	} else {
+		var okTight bool
+		axisR, okTight = tightRegionFromLabelInClip(w, h, labels, region.ID, clip)
+		if !okTight {
+			axisR = region
+		}
+	}
+	pts := borderPointsSubsampled(w, h, labels, region.ID, stride, b, clip)
 	if len(pts) < 3 {
-		return toRGBAaxis(src, region, b), axisMeta(region, b)
+		return toRGBAaxis(src, axisR, b), axisMeta(axisR, b)
 	}
 	hull := contour.ConvexHullMonotone(append([]geom.Point{}, pts...))
 	if len(hull) < 3 {
-		return toRGBAaxis(src, region, b), axisMeta(region, b)
+		return toRGBAaxis(src, axisR, b), axisMeta(axisR, b)
 	}
 
 	val := geom.DefaultQuadValidation()
@@ -76,7 +100,7 @@ func extractRegion(
 		}
 	}
 	if !ok {
-		return toRGBAaxis(src, region, b), axisMetaInvalidQuad(region, b)
+		return toRGBAaxis(src, axisR, b), axisMetaInvalidQuad(axisR, b)
 	}
 
 	c := geom.Centroid(q)
@@ -86,7 +110,7 @@ func extractRegion(
 	warp.ClampToImageBounds(&q, b)
 	ow, oh := warp.Quadbounds(q)
 	if ow < 2 || oh < 2 {
-		return toRGBAaxis(src, region, b), axisMeta(region, b)
+		return toRGBAaxis(src, axisR, b), axisMeta(axisR, b)
 	}
 	dst0 := [4]geom.Point{
 		{X: 0, Y: 0}, {X: float64(ow - 1), Y: 0},
@@ -94,11 +118,11 @@ func extractRegion(
 	}
 	hmat, okDLT := warp.DLT3x3(q, dst0)
 	if !okDLT {
-		return toRGBAaxis(src, region, b), axisMetaHomographyFail(region, b)
+		return toRGBAaxis(src, axisR, b), axisMetaHomographyFail(axisR, b)
 	}
 	inv, okInv := warp.Invert3x3(hmat)
 	if !okInv {
-		return toRGBAaxis(src, region, b), axisMetaHomographyFail(region, b)
+		return toRGBAaxis(src, axisR, b), axisMetaHomographyFail(axisR, b)
 	}
 	out = warp.PerspectiveWarp(src, inv, ow, oh)
 	meta = metaFromCorners(q, mode, conf)
@@ -159,7 +183,7 @@ func toRGBAaxis(src *image.RGBA, r seg.Region, b image.Rectangle) *image.RGBA {
 	return toRGBA(src.SubImage(bb))
 }
 
-func borderPointsSubsampled(w, h int, labels []int, id int, stride int, b image.Rectangle) []geom.Point {
+func borderPointsSubsampled(w, h int, labels []int, id int, stride int, b image.Rectangle, clip *image.Rectangle) []geom.Point {
 	if stride < 1 {
 		stride = 1
 	}
@@ -170,6 +194,9 @@ func borderPointsSubsampled(w, h int, labels []int, id int, stride int, b image.
 			if labels[y*w+x] != id {
 				continue
 			}
+			if clip != nil && !rectClipContains(clip, x, y) {
+				continue
+			}
 			border := false
 			for _, d := range [4]struct{ dx, dy int }{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
 				nx, ny := x+d.dx, y+d.dy
@@ -178,6 +205,10 @@ func borderPointsSubsampled(w, h int, labels []int, id int, stride int, b image.
 					break
 				}
 				if labels[ny*w+nx] != id {
+					border = true
+					break
+				}
+				if clip != nil && !rectClipContains(clip, nx, ny) {
 					border = true
 					break
 				}
@@ -201,6 +232,48 @@ func borderPointsSubsampled(w, h int, labels []int, id int, stride int, b image.
 		pts = p2
 	}
 	return pts
+}
+
+// tightRegionFromLabelInClip returns the axis-aligned bbox of pixels with labels==id, optionally restricted to clip.
+func tightRegionFromLabelInClip(w, h int, labels []int, id int, clip *image.Rectangle) (seg.Region, bool) {
+	minX, minY := w, h
+	maxX, maxY := -1, -1
+	n := 0
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			if labels[y*w+x] != id {
+				continue
+			}
+			if clip != nil && !rectClipContains(clip, x, y) {
+				continue
+			}
+			n++
+			if x < minX {
+				minX = x
+			}
+			if y < minY {
+				minY = y
+			}
+			if x > maxX {
+				maxX = x
+			}
+			if y > maxY {
+				maxY = y
+			}
+		}
+	}
+	if n == 0 || maxX < minX {
+		return seg.Region{}, false
+	}
+	return seg.Region{
+		ID: id, Area: n,
+		Cx: float64(minX+maxX) / 2, Cy: float64(minY+maxY) / 2,
+		MinX: minX, MinY: minY, MaxX: maxX, MaxY: maxY,
+	}, true
+}
+
+func rectClipContains(clip *image.Rectangle, x, y int) bool {
+	return x >= clip.Min.X && x < clip.Max.X && y >= clip.Min.Y && y < clip.Max.Y
 }
 
 // buildBinary: foreground=1, background=0 (foreground is darker than threshold).

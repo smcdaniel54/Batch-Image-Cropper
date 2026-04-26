@@ -1,4 +1,4 @@
-// Package main is the photo-cropper CLI: extract photos from flatbed scans in pure Go.
+// Package main is the batch-image-cropper CLI: extract photos from flatbed scans in pure Go.
 package main
 
 import (

@@ -1,4 +1,4 @@
-# photo-cropper
+# batch-image-cropper
 
 Pure Go (no cgo) CLI for splitting flatbed or sheet-fed scans: **detect each photo on a near-white background**, run a **single-step perspective (homography) warp** to straighten, optionally fit an **aspect ratio**, and write one JPEG per photo plus a `manifest.json`.
 
@@ -11,10 +11,10 @@ Pure Go (no cgo) CLI for splitting flatbed or sheet-fed scans: **detect each pho
 Open **PowerShell** or **cmd** in the project folder (where `go.mod` lives):
 
 ```powershell
-go build -o photo-cropper.exe .
+go build -o batch-image-cropper.exe .
 ```
 
-This produces `photo-cropper.exe` in the current directory.
+This produces `batch-image-cropper.exe` in the current directory.
 
 ## Usage
 
@@ -23,19 +23,19 @@ This produces `photo-cropper.exe` in the current directory.
 ### No arguments (process `./input` → `./output`)
 
 ```powershell
-.\photo-cropper.exe
+.\batch-image-cropper.exe
 ```
 
 ### Single file (output defaults to `./output`)
 
 ```powershell
-.\photo-cropper.exe -input ".\scan.jpg" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5 -debug
+.\batch-image-cropper.exe -input ".\scan.jpg" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5 -debug
 ```
 
 ### Entire folder (top-level files only, not subfolders)
 
 ```powershell
-.\photo-cropper.exe -input-dir ".\scans" -out-dir ".\cropped" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5 -debug
+.\batch-image-cropper.exe -input-dir ".\scans" -out-dir ".\cropped" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5 -debug
 ```
 
 ### Flags
@@ -63,19 +63,18 @@ Supported inputs: **`.jpg`**, **`.jpeg`**, **`.png`**.
 
 ## Development helper (PowerShell)
 
-For local runs only: move **files** (not subfolders) from `input/processed/` back into `input/`, with optional removal of `./output`. Name clashes in `input/` are resolved as `name_2.ext`, `name_3.ext`, etc. The script does **not** run the cropper.
+This is the **normal dev quality loop**: move **files** (not subfolders) from `input/processed/` back into `input/`, **always** delete `./output` if it exists, then run **`batch-image-cropper.exe`** (building it with **`go build`** first if the exe is missing). Name clashes in `input/` are resolved as `name_2.ext`, `name_3.ext`, etc.
 
-From the repo root (where `go.mod` lives):
+When you pass no extra arguments, the script runs **`batch-image-cropper.exe -input-dir <InputDir> -debug`** (batch mode on your input folder plus debug PNGs). Pass any extra cropper flags after the script parameters; they replace that default and are forwarded as-is. The script **`Set-Location`** to the repo root (parent of `scripts/`), so you can run it from any directory.
 
 ```powershell
-.\scripts\dev-reset-input.ps1 -RemoveOutput
-.\photo-cropper.exe
+.\scripts\dev-reset-input.ps1
 ```
 
-Use another input tree:
+Custom input folder and extra flags (unbound arguments are passed through to `batch-image-cropper.exe`):
 
 ```powershell
-.\scripts\dev-reset-input.ps1 -InputDir ".\my-input" -RemoveOutput
+.\scripts\dev-reset-input.ps1 -InputDir ".\my-input" -threshold 240 -min-area 15000
 ```
 
 ## Algorithm notes
