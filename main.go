@@ -14,11 +14,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"photo-cropper/internal/cropper"
-	"photo-cropper/internal/fsutil"
-	"photo-cropper/internal/manifest"
-	"photo-cropper/internal/moveprocessed"
-	"photo-cropper/internal/qualityreport"
+	"batch-image-cropper/internal/cropper"
+	"batch-image-cropper/internal/fsutil"
+	"batch-image-cropper/internal/manifest"
+	"batch-image-cropper/internal/moveprocessed"
+	"batch-image-cropper/internal/qualityreport"
 )
 
 func main() {

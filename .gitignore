@@ -4,9 +4,14 @@
 *.out
 
 # Local runs (do not commit scans or derived outputs)
-/output/
+output/
+cropped/
+**/debug/
+
+# Input tree: keep .gitkeep only; ignore loose files and processed scans
 /input/*
 !/input/.gitkeep
+input/processed/
 
 # OS / editor
 .DS_Store

@@ -4,17 +4,17 @@ import (
 	"image"
 	"math"
 
-	"photo-cropper/internal/seg"
+	"batch-image-cropper/internal/seg"
 )
 
 // Heuristics for splitting one connected component when a thin background gap
 // suggests multiple photos inside the region bbox.
 const (
-	sepBgFrac        = 0.9
-	sepBandMinPx     = 3
-	sepBandMaxPx     = 10
-	bboxEdgeFrac     = 0.15
-	sepMinInnerSpan  = 5 // require inner [min,max] to span at least this many columns/rows for a valid separator search
+	sepBgFrac       = 0.9
+	sepBandMinPx    = 3
+	sepBandMaxPx    = 10
+	bboxEdgeFrac    = 0.15
+	sepMinInnerSpan = 5 // require inner [min,max] to span at least this many columns/rows for a valid separator search
 )
 
 // trySplitRegionClips returns two disjoint clip rectangles (image coords 0..w, 0..h, Max exclusive)

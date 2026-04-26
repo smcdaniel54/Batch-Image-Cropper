@@ -1,4 +1,4 @@
-module photo-cropper
+module batch-image-cropper
 
 go 1.23.0
 

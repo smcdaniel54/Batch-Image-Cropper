@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"photo-cropper/internal/manifest"
+	"batch-image-cropper/internal/manifest"
 )
 
 func TestBuildMarkdown_includesAllModes(t *testing.T) {

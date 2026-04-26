@@ -5,8 +5,8 @@ import (
 	"image/color"
 	"os"
 
-	"photo-cropper/internal/seg"
-	"photo-cropper/internal/warp"
+	"batch-image-cropper/internal/seg"
+	"batch-image-cropper/internal/warp"
 )
 
 // ProcessScan loads a scan, segments it, and returns the full-decoded source (for QA overlays) and

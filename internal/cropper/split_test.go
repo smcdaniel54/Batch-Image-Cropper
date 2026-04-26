@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"photo-cropper/internal/seg"
+	"batch-image-cropper/internal/seg"
 )
 
 // writeMergedTwoPhotosScanJPEG draws two large dark cards on white, connected only along a thin

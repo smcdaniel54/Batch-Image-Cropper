@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"testing"
 
-	"photo-cropper/internal/geom"
+	"batch-image-cropper/internal/geom"
 )
 
 func TestEnforceAspectWider(t *testing.T) {

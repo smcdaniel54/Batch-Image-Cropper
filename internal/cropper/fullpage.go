@@ -4,14 +4,14 @@ import (
 	"image"
 	"math"
 
-	"photo-cropper/internal/seg"
+	"batch-image-cropper/internal/seg"
 )
 
 const (
-	fullPageBBoxAreaFracMax   = 0.85 // reject when bbox area / source area > this
-	fullPageMinSideFrac       = 0.90 // reject when both bbox sides >= this fraction of source
-	fullPageQuadSideFrac      = 0.90 // same for quad corner AABB
-	fullPageQuadAreaFracMax   = 0.85
+	fullPageBBoxAreaFracMax = 0.85 // reject when bbox area / source area > this
+	fullPageMinSideFrac     = 0.90 // reject when both bbox sides >= this fraction of source
+	fullPageQuadSideFrac    = 0.90 // same for quad corner AABB
+	fullPageQuadAreaFracMax = 0.85
 )
 
 // isFullPageCandidate reports whether a segmented region is almost the entire scan (page border

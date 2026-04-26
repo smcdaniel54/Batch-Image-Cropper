@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"photo-cropper/internal/manifest"
+	"batch-image-cropper/internal/manifest"
 )
 
 // KnownModeOrder is the stable order for table rows; unknown modes in data are appended sorted.

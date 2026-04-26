@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"photo-cropper/internal/geom"
-	"photo-cropper/internal/seg"
+	"batch-image-cropper/internal/geom"
+	"batch-image-cropper/internal/seg"
 )
 
 func TestIsFullPageCandidateByArea(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"math"
 
-	"photo-cropper/internal/geom"
+	"batch-image-cropper/internal/geom"
 )
 
 // DLT3x3 computes homography h from 4 point pairs (h22=1), src to dst. Returns false if singular.

@@ -3,7 +3,7 @@ package qualityreport
 import (
 	"os"
 
-	"photo-cropper/internal/manifest"
+	"batch-image-cropper/internal/manifest"
 )
 
 // WriteFile writes `quality_report.md` text built from the same inputs as the manifest.

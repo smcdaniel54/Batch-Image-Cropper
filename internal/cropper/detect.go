@@ -1,13 +1,13 @@
 package cropper
 
 import (
+	"batch-image-cropper/internal/contour"
+	"batch-image-cropper/internal/geom"
+	"batch-image-cropper/internal/seg"
+	"batch-image-cropper/internal/warp"
 	"image"
 	"image/color"
 	"image/draw"
-	"photo-cropper/internal/contour"
-	"photo-cropper/internal/geom"
-	"photo-cropper/internal/seg"
-	"photo-cropper/internal/warp"
 )
 
 func gray8(c color.RGBA) uint8 {

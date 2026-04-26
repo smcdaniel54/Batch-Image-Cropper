@@ -3,7 +3,7 @@ package contour
 import (
 	"math"
 
-	"photo-cropper/internal/geom"
+	"batch-image-cropper/internal/geom"
 )
 
 // MinAreaRectBrute returns the minimum-area enclosing rectangle of an arbitrary point set

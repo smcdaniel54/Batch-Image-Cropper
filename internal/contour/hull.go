@@ -4,7 +4,7 @@ import (
 	"math"
 	"sort"
 
-	"photo-cropper/internal/geom"
+	"batch-image-cropper/internal/geom"
 )
 
 // ConvexHullMonotone returns vertices of convex hull in CCW order (no collinear duplicate in minimal form).

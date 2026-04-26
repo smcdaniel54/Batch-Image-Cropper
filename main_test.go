@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"photo-cropper/internal/manifest"
+	"batch-image-cropper/internal/manifest"
 )
 
 // TestEmptyInputDirDoesNotCreateOutput runs the app against an empty input directory and
