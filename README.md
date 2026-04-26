@@ -1,0 +1,70 @@
+# photo-cropper
+
+Pure Go (no cgo) CLI for splitting flatbed or sheet-fed scans: **detect each photo on a near-white background**, run a **single-step perspective (homography) warp** to straighten, optionally fit an **aspect ratio**, and write one JPEG per photo plus a `manifest.json`.
+
+## Requirements
+
+- [Go 1.23+](https://go.dev/dl/) (module `go 1.23.0`; tested on Windows 11; works on any Go-supported OS)
+
+## Build on Windows 11
+
+Open **PowerShell** or **cmd** in the project folder (where `go.mod` lives):
+
+```powershell
+go build -o photo-cropper.exe .
+```
+
+This produces `photo-cropper.exe` in the current directory.
+
+## Usage
+
+**Defaults:** if you omit both `-input` and `-input-dir`, input is the folder `./input`. If you omit `-out-dir`, output is `./output` (the directory is created if needed). The program prints the resolved **absolute** input and output paths on startup. You cannot use `-input` and `-input-dir` together.
+
+### No arguments (process `./input` → `./output`)
+
+```powershell
+.\photo-cropper.exe
+```
+
+### Single file (output defaults to `./output`)
+
+```powershell
+.\photo-cropper.exe -input ".\scan.jpg" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5 -debug
+```
+
+### Entire folder (top-level files only, not subfolders)
+
+```powershell
+.\photo-cropper.exe -input-dir ".\scans" -out-dir ".\cropped" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5 -debug
+```
+
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-input` | (none) | One scan file; not combinable with `-input-dir` |
+| `-input-dir` | (none) | Directory of images; if both `-input` and `-input-dir` are omitted, this defaults to `./input` |
+| `-out-dir` | `./output` | Where JPEGs and `manifest.json` are written; created if missing |
+| `-threshold` | `245` | Pixels with luminance **below** this are treated as foreground (photo); near-white platen is background |
+| `-min-area` | `20000` | Smallest component (in pixels) kept as a photo |
+| `-padding` | `0` | Grows the quad from its center before warping, in pixels (approximate) |
+| `-aspect` | `0` | When positive, the warped result is **center-cropped** so width/height equals this value |
+| `-debug` | `false` | Writes `out-dir/debug/<stem>_debug.png` with quads and corner markers |
+
+Supported inputs: **`.jpg`**, **`.jpeg`**, **`.png`**.
+
+## Outputs
+
+- **QA overlay** (per scan with crops): `<source-stem>_000_qa.jpg` (annotated full scan; sorts first in that stem’s files).
+- **Cropped images:** `<source-stem>_001.jpg`, `_002`, …
+- `manifest.json`: `qa_image` (same on every entry from a source), source path, output filename, four corner points used for detection, output size, `mode`, and `confidence`. Modes include `quad_hull`, `rotated_min_area_rect`, `axis_aligned`, `axis_aligned_invalid_quad` (quad failed validation), and `axis_aligned_homography_fail` (matrix solve/invert failed).
+- **Processed scans:** after each source file yields at least one photo, the original scan is moved to `processed/` under the input directory (when using a folder or default `./input`), or to `processed/` next to a single input file. Collisions are resolved with `name_2.ext`, `name_3.ext`, etc. The manifest `source` path is updated to the new location. Nothing is moved if the run fails, or if a scan produced zero photos.
+- With `-debug`: overlay images under `out-dir/debug/`.
+
+## Algorithm notes
+
+Foreground is found by **luminance thresholding**, then **4-connected** components, sorted **top-to-bottom, then left-to-right**. For each region, border samples feed a **convex hull**; either a 4-vertex hull or a **minimum-area rectangle** (angular sweep) supplies four corners. Corners are ordered by **centroid + polar angle**, then normalized to TL–TR–BR–BL with winding matched to the destination rectangle. Quads are **validated** (minimum area, edge length, aspect ratio, self-intersection) before warping; failed candidates fall back to the minimum-area rectangle or an axis-aligned crop, with matching `manifest.json` modes and confidence.
+
+## License
+
+This project is provided as-is; add a license as needed.

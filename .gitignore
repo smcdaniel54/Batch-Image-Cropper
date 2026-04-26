@@ -1,0 +1,17 @@
+# Build
+*.exe
+*.test
+*.out
+
+# Local runs (do not commit scans or derived outputs)
+/output/
+/input/*
+!/input/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
