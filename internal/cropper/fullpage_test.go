@@ -79,7 +79,7 @@ func TestProcessScanRejectsMonolithicFullPage(t *testing.T) {
 	}
 	_ = f.Close()
 
-	opts := Options{Threshold: 245, MinArea: 5000, Padding: 0, Aspect: 0, DebugDir: ""}
+	opts := Options{Threshold: 245, MinArea: 5000, Padding: 0, Aspect: 0}
 	_, out, metas, err := ProcessScan(path, opts)
 	if err != nil {
 		t.Fatal(err)
@@ -111,7 +111,7 @@ func TestProcessScanNoCropMatchesSourceDimensions(t *testing.T) {
 	}
 	_ = f.Close()
 
-	opts := Options{Threshold: 245, MinArea: 1000, Padding: 0, Aspect: 0, DebugDir: ""}
+	opts := Options{Threshold: 245, MinArea: 1000, Padding: 0, Aspect: 0}
 	_, out, _, err := ProcessScan(path, opts)
 	if err != nil {
 		t.Fatal(err)

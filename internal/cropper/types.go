@@ -4,9 +4,8 @@ package cropper
 type Options struct {
 	Threshold int
 	MinArea   int
-	Padding   int
-	Aspect    float64
-	DebugDir  string
+	Padding int
+	Aspect  float64
 }
 
 // Meta per extracted photo.

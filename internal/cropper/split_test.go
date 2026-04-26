@@ -57,7 +57,7 @@ func TestProcessScanSplitsMergedComponentByVerticalGap(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "merged.jpg")
 	writeMergedTwoPhotosScanJPEG(t, path)
-	opts := Options{Threshold: 245, MinArea: 20000, Padding: 0, Aspect: 0, DebugDir: ""}
+	opts := Options{Threshold: 245, MinArea: 20000, Padding: 0, Aspect: 0}
 	_, out, metas, err := ProcessScan(path, opts)
 	if err != nil {
 		t.Fatal(err)
@@ -96,7 +96,7 @@ func TestProcessScanSingleRectangleDoesNotSplit(t *testing.T) {
 	}
 	_ = f.Close()
 
-	opts := Options{Threshold: 245, MinArea: 20000, Padding: 0, Aspect: 0, DebugDir: ""}
+	opts := Options{Threshold: 245, MinArea: 20000, Padding: 0, Aspect: 0}
 	_, out, _, err := ProcessScan(path, opts)
 	if err != nil {
 		t.Fatal(err)

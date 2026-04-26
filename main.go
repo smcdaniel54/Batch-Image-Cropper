@@ -37,7 +37,6 @@ func run() error {
 		minArea   = flag.Int("min-area", 20000, "minimum area in pixels for a component")
 		padding   = flag.Int("padding", 0, "expand each detected region by this many pixels (from center)")
 		aspect    = flag.Float64("aspect", 0, "if >0, center-crop to this width/height after warp")
-		debug     = flag.Bool("debug", false, "write debug overlays to <out-dir>/debug")
 	)
 	flag.Parse()
 	singleInput := *input != ""
@@ -74,16 +73,9 @@ func run() error {
 		return fmt.Errorf("no supported image files to process")
 	}
 
-	// 3) At least one file to process: create output and optional debug layout.
+	// 3) At least one file to process: create output directory.
 	if err := os.MkdirAll(outAbs, 0o755); err != nil {
 		return fmt.Errorf("create out-dir: %w", err)
-	}
-	debugDir := ""
-	if *debug {
-		debugDir = filepath.Join(outAbs, "debug")
-		if err := os.MkdirAll(debugDir, 0o755); err != nil {
-			return fmt.Errorf("create debug dir: %w", err)
-		}
 	}
 
 	var entries []manifest.Entry
@@ -97,7 +89,6 @@ func run() error {
 		MinArea:   *minArea,
 		Padding:   *padding,
 		Aspect:    *aspect,
-		DebugDir:  debugDir,
 	}
 
 	sourceCount := 0
@@ -192,15 +183,13 @@ func run() error {
 		return err
 	}
 	printBatchSummary(batchSummary{
-		SourceImages:      sourceCount,
-		PhotosExtracted:   len(entries),
-		QaImagesWritten:   qaImagesWritten,
-		FilesMoved:        filesMoved,
-		FallbackByMode:    fallbackByMode,
-		WarningCount:      warnCount,
-		ManifestPath:      manifestAbs,
-		DebugEnabled:      *debug,
-		DebugDir:          debugDir,
+		SourceImages:    sourceCount,
+		PhotosExtracted: len(entries),
+		QaImagesWritten: qaImagesWritten,
+		FilesMoved:      filesMoved,
+		FallbackByMode:  fallbackByMode,
+		WarningCount:    warnCount,
+		ManifestPath:    manifestAbs,
 	})
 	return nil
 }
@@ -266,8 +255,6 @@ type batchSummary struct {
 	FallbackByMode  map[string]int
 	WarningCount    int
 	ManifestPath    string
-	DebugEnabled    bool
-	DebugDir        string
 }
 
 func printBatchSummary(s batchSummary) {
@@ -287,14 +274,6 @@ func printBatchSummary(s batchSummary) {
 	}
 	fmt.Fprintf(os.Stdout, "warnings: %d\n", s.WarningCount)
 	fmt.Fprintf(os.Stdout, "manifest: %s\n", s.ManifestPath)
-	if s.DebugEnabled {
-		dbg, err := filepath.Abs(s.DebugDir)
-		if err != nil {
-			fmt.Fprintf(os.Stdout, "debug directory: %s\n", s.DebugDir)
-			return
-		}
-		fmt.Fprintf(os.Stdout, "debug directory: %s\n", dbg)
-	}
 }
 
 func metaCornersToSlice(m cropper.Meta) [][]float64 {

@@ -3,10 +3,7 @@ package cropper
 import (
 	"image"
 	"image/color"
-	"image/png"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"photo-cropper/internal/seg"
 	"photo-cropper/internal/warp"
@@ -73,66 +70,7 @@ func ProcessScan(path string, o Options) (source *image.RGBA, out []*image.RGBA,
 			allM = append(allM, meta)
 		}
 	}
-	if o.DebugDir != "" {
-		saveDebug(path, o.DebugDir, src, allM)
-	}
 	return src, allImg, allM, nil
-}
-
-// saveDebug writes one PNG with all detected quads and corner markers.
-func saveDebug(path, dir string, src *image.RGBA, metas []Meta) {
-	dupe := toRGBA(src)
-	green := color.RGBA{0, 200, 0, 255}
-	red := color.RGBA{255, 0, 0, 255}
-	for _, m := range metas {
-		for i := 0; i < 4; i++ {
-			j := (i + 1) % 4
-			x0 := int(0.5 + m.Corners[i][0])
-			y0 := int(0.5 + m.Corners[i][1])
-			x1 := int(0.5 + m.Corners[j][0])
-			y1 := int(0.5 + m.Corners[j][1])
-			bres(dupe, x0, y0, x1, y1, green)
-		}
-		for i := 0; i < 4; i++ {
-			cx, cy := int(0.5+m.Corners[i][0]), int(0.5+m.Corners[i][1])
-			for dy := -2; dy <= 2; dy++ {
-				for dx := -2; dx <= 2; dx++ {
-					if maxAbs(dx, dy) > 2 {
-						continue
-					}
-					if abs(dx)+abs(dy) > 3 {
-						continue
-					}
-					x, y := cx+dx, cy+dy
-					bb := dupe.Bounds()
-					if x >= bb.Min.X && x < bb.Max.X && y >= bb.Min.Y && y < bb.Max.Y {
-						dupe.SetRGBA(x, y, red)
-					}
-				}
-			}
-		}
-	}
-	stem := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-	p := filepath.Join(dir, stem+"_debug.png")
-	of, err := os.Create(p)
-	if err != nil {
-		return
-	}
-	_ = png.Encode(of, dupe)
-	_ = of.Close()
-}
-
-func maxAbs(a, b int) int {
-	if a < 0 {
-		a = -a
-	}
-	if b < 0 {
-		b = -b
-	}
-	if a > b {
-		return a
-	}
-	return b
 }
 
 func abs(x int) int {

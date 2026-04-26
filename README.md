@@ -29,13 +29,13 @@ This produces `batch-image-cropper.exe` in the current directory.
 ### Single file (output defaults to `./output`)
 
 ```powershell
-.\batch-image-cropper.exe -input ".\scan.jpg" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5 -debug
+.\batch-image-cropper.exe -input ".\scan.jpg" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5
 ```
 
 ### Entire folder (top-level files only, not subfolders)
 
 ```powershell
-.\batch-image-cropper.exe -input-dir ".\scans" -out-dir ".\cropped" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5 -debug
+.\batch-image-cropper.exe -input-dir ".\scans" -out-dir ".\cropped" -threshold 245 -min-area 20000 -padding 10 -aspect 1.5
 ```
 
 ### Flags
@@ -44,28 +44,27 @@ This produces `batch-image-cropper.exe` in the current directory.
 |------|---------|-------------|
 | `-input` | (none) | One scan file; not combinable with `-input-dir` |
 | `-input-dir` | (none) | Directory of images; if both `-input` and `-input-dir` are omitted, this defaults to `./input` |
-| `-out-dir` | `./output` | Where JPEGs and `manifest.json` are written; created if missing |
+| `-out-dir` | `./output` | Where JPEGs, `manifest.json`, and `quality_report.md` are written; created if missing |
 | `-threshold` | `245` | Pixels with luminance **below** this are treated as foreground (photo); near-white platen is background |
 | `-min-area` | `20000` | Smallest component (in pixels) kept as a photo |
 | `-padding` | `0` | Grows the quad from its center before warping, in pixels (approximate) |
 | `-aspect` | `0` | When positive, the warped result is **center-cropped** so width/height equals this value |
-| `-debug` | `false` | Writes `out-dir/debug/<stem>_debug.png` with quads and corner markers |
 
 Supported inputs: **`.jpg`**, **`.jpeg`**, **`.png`**.
 
 ## Outputs
 
-- **QA overlay** (per scan with crops): `<source-stem>_000_qa.jpg` (annotated full scan; sorts first in that stem’s files).
+- **QA overlay** (per scan that produced at least one crop): `<source-stem>_000_qa.jpg` — full scan with each crop’s quad, corners, and index labels. This is the **primary visual inspection** artifact for detection quality.
 - **Cropped images:** `<source-stem>_001.jpg`, `_002`, …
 - `manifest.json`: `qa_image` (same on every entry from a source), source path, output filename, four corner points used for detection, output size, `mode`, and `confidence`. Modes include `quad_hull`, `rotated_min_area_rect`, `axis_aligned`, `axis_aligned_invalid_quad` (quad failed validation), and `axis_aligned_homography_fail` (matrix solve/invert failed).
+- `quality_report.md`: batch-level summary derived from the manifest.
 - **Processed scans:** after each source file yields at least one photo, the original scan is moved to `processed/` under the input directory (when using a folder or default `./input`), or to `processed/` next to a single input file. Collisions are resolved with `name_2.ext`, `name_3.ext`, etc. The manifest `source` path is updated to the new location. Nothing is moved if the run fails, or if a scan produced zero photos.
-- With `-debug`: overlay images under `out-dir/debug/`.
 
 ## Development helper (PowerShell)
 
 This is the **normal dev quality loop**: move **files** (not subfolders) from `input/processed/` back into `input/`, **always** delete `./output` if it exists, then run **`batch-image-cropper.exe`** (building it with **`go build`** first if the exe is missing). Name clashes in `input/` are resolved as `name_2.ext`, `name_3.ext`, etc.
 
-When you pass no extra arguments, the script runs **`batch-image-cropper.exe -input-dir <InputDir> -debug`** (batch mode on your input folder plus debug PNGs). Pass any extra cropper flags after the script parameters; they replace that default and are forwarded as-is. The script **`Set-Location`** to the repo root (parent of `scripts/`), so you can run it from any directory.
+When you pass no extra arguments, the script runs **`batch-image-cropper.exe -input-dir <InputDir>`** (same as batch mode on your input folder; QA JPEGs are written whenever crops are saved). Pass any extra cropper flags after the script parameters; they replace that default and are forwarded as-is. The script **`Set-Location`** to the repo root (parent of `scripts/`), so you can run it from any directory.
 
 ```powershell
 .\scripts\dev-reset-input.ps1

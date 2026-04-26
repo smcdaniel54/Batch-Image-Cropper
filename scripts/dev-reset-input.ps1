@@ -14,8 +14,8 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $RepoRoot
 
 if ($null -eq $CropperArgs -or $CropperArgs.Count -eq 0) {
-    # Explicit -input-dir so dev runs match batch mode; -debug for QA overlays.
-    $CropperArgs = @("-input-dir", $InputDir, "-debug")
+    # Explicit -input-dir so dev runs match batch mode (QA overlays are always written when crops exist).
+    $CropperArgs = @("-input-dir", $InputDir)
 }
 
 Write-Host "--- reset ---"
